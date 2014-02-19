@@ -1,26 +1,18 @@
-function binarySearch(items, value){
+function binarySearch(key, array){
+    var low = 0;
+    var high = array.length - 1;
 
-    var startIndex  = 0,
-        stopIndex   = items.length - 1,
-        middle      = Math.floor((stopIndex + startIndex)/2);
+    while(low <= high){
+        var mid = Math.floor((low+high)/2);
+        var value = array[mid];
 
-    while(items[middle] != value && startIndex < stopIndex){
-
-        //adjust search area
-        if (value < items[middle]){
-            stopIndex = middle - 1;
-        } else if (value > items[middle]){
-            startIndex = middle + 1;
-        }
-
-        //recalculate middle
-        middle = Math.floor((stopIndex + startIndex)/2);
+        if(value < key) low = mid + 1;
+        else if(value > key) high = mid - 1;
+        else return mid;
     }
-
-    //make sure it's the right value
-    return (items[middle] != value) ? -1 : middle;
+    return -1;
 }
 
 var items = ["a","b","c","d","e","f","g","h","i","j"];
-console.log(binarySearch(items, "i"));
-console.log(binarySearch(items, "b"));
+console.log(binarySearch("i", items));
+console.log(binarySearch("b", items));
