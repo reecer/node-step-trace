@@ -43,6 +43,7 @@ function Client(port, script, frameStep){
 	this.port = port;
 	this.script = script;
 	this.frameStep = frameStep;
+    this.frameIndex = 0;
 
 	this.on('exception', function(exc){
 		throw("Exception in client script:\n\t%j", exc);
@@ -66,6 +67,12 @@ Client.prototype.step = function(n){
 		}
 	}, function(){});
 };
+Client.prototype.getNextFrame = function(cb){
+    this.reqBacktrace(function(err, resp){
+        if(err) throw("Error requesting backtrace: \n\t%s", err);
+        cb(resp.frames[0]);
+    });
+}
 Client.prototype.getFrameLocals = function(f, cb){
 	var refs = [],
 		refNames = [],
@@ -75,23 +82,45 @@ Client.prototype.getFrameLocals = function(f, cb){
 		refs.push(l.value.ref); 
 		refNames.push(l.name);
 	});
+    var self = this;
 	// Lookup locals
 	this.reqLookup(refs, function(e, ctx){
 		if(e) throw("Error on lookup: \n\t%s", e);
 		refs.forEach(function(ref, i){
-			var loc = ctx[ref];
-			var val = null;
-			switch(loc.className){
-				case 'Object':
-				case 'Array':
-				case 'Function':
-					val = loc;
-					break;
-				default:
-					val = ctx[ref].value;
-			}
-			loces[refNames[i]] = val;
+            self.digObject(ctx[ref], function(val){
+                loces[refNames[i]] = val;
+                if(i == refs.length - 1)
+                    cb(loces);                
+            });
 		});
-		cb(loces);
 	});
 };
+Client.prototype.digObject = function(obj, cb){
+    var val = null;
+    
+    switch(obj.className){
+//        case 'Function':
+        case 'Object':
+        case 'Array':
+            var refs = [], refNames = [], count = 0, self = this;
+            val = {};
+            obj.properties.forEach(function(prop){
+                refs.push(prop.ref);
+                refNames.push(prop.name);
+            });
+            this.reqLookup(refs, function(err, resp){
+                refs.forEach(function(ref,i){
+                   self.digObject(resp[ref], function(v){
+                       val[refNames[i]] = v;
+                       count++;
+                       if(count == refs.length) cb(val);
+                   });
+                });
+            });
+
+            break;
+        default:
+            val = obj.value;
+            cb(val);
+    }
+}
