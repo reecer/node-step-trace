@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-var ClientManager = require('./debug-client'),
+var Client = require('./debug-client'),
 	fs = require('fs');
 
-var clientPool = new ClientManager();
+var script = 'search.js', port = 5859;
 
-startScript('search.js', function(fname, ln, locals){
+startScript(port, 'search.js', function(fname, ln, locals){
 	console.log('%s:%d\n\t%j', fname, ln, locals);
 });
 
-function startScript(src, frameStep){
+function startScript(port, src, frameStep){
     var tStart = Date.now();
-	var dbg = clientPool.addClient(src, frameStep);
+	var dbg = new Client(port, src, frameStep);
     
 	process.on('exit', 	function(){ dbg.proc.kill()	});
 	dbg.proc.on('close', 	function(){ 
@@ -21,7 +21,7 @@ function startScript(src, frameStep){
 		dbg.getNextFrame(function(frame) {
             var script = dbg.scripts[frame.func.scriptId];        
             
-            if(script && script.isNative !== true){      
+            if(script && script.isNative !== true){
                 dbg.getFrameLocals(frame, function(loces){
                     var data = {
                         script: script.name,
@@ -30,24 +30,13 @@ function startScript(src, frameStep){
                         locals: loces
                     };
                     frameStep(data.script, data.line, data.locals);
-                    if(script.lineCount-1 > frame.line)
-                        dbg.step(1, 'in');
+                    if(script.lineCount-1 > frame.line) dbg.step(1, 'in');
                     else dbg.cont();
                 });
             }else dbg.step();
 		});
 	});	
-	dbg.once('ready', function(){
-//        dbg.setBreakpoint({
-//            type: "script",
-//            target: __dirname + "/" + src,
-//            line: 1
-//        }, function(err, res){
-//            if(err) throw ("Error setting breakpoint:\n\t" + err);
-//            dbg.step(1, 'in');
-//        });  
-        dbg.step(1, 'in');
-	});
+	dbg.once('ready', dbg.step.bind(dbg));
 	dbg.connect();
 }
 
