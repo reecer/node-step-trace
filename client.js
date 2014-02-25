@@ -3,44 +3,65 @@
 var Client = require('./debug-client'),
 	fs = require('fs');
 
-var script = 'search.js', port = 5859;
+exports.trace = startScript;
 
-startScript(port, 'search.js', function(fname, ln, locals){
-	console.log('%s:%d\n\t%j', fname, ln, locals);
-});
+// options = {
+//      onstep:     Function
+//      onclose:    Function
+//      getLocals:  Boolean (true)
+//      onlyNative: Boolean (false)
+// }
 
-function startScript(port, src, frameStep){
-    var tStart = Date.now();
-	var dbg = new Client(port, src, frameStep);
-    
-	process.on('exit', 	function(){ dbg.proc.kill()	});
-	dbg.proc.on('close', 	function(){ 
-        console.log('Elapsed:', (Date.now()-tStart)/1000);
- 	});
-	dbg.on('break', function(brk){
-		dbg.getNextFrame(function(frame) {
-            var script = dbg.scripts[frame.func.scriptId];        
-            
-            if(script && script.isNative !== true){
-                dbg.getFrameLocals(frame, function(loces){
-                    var data = {
-                        script: script.name,
-                        line: frame.line,
-                        text: frame.sourceLineText,
-                        locals: loces
-                    };
-                    frameStep(data.script, data.line, data.locals);
-                    if(script.lineCount-1 > frame.line) dbg.step(1, 'in');
-                    else dbg.cont();
-                });
+
+function startScript(src, options){
+    options.extend({
+        getLocals: true,
+        getNative: false
+    });
+
+    // Init client
+    var dbg = new Client(options.PORT || 5859, src);
+
+    // callbacks
+    if(typeof options.onclose === 'function') 
+        dbg.proc.on('close', options.onclose);
+    process.on('exit', dbg.proc.kill.bind(dbg.proc));
+
+    // Break event -- happens after stepping
+    dbg.on('break', function(brk){
+        // Explore frames if told
+        dbg.getNextFrame(function(frame) {
+            var script = dbg.scripts[frame.func.scriptId];         
+            if(script && (options.getNative || script.isNative !== true) ){
+                var callback = script.lineCount-1 > frame.line ? dbg.step.bind(dbg, 1, 'in') : dbg.cont.bind(dbg);
+                var data = {
+                    script: script.name,
+                    line: frame.line,
+                    text: frame.sourceLineText
+                };
+                // next step
+                var next = function(){
+                    if(typeof options.onstep === 'function')
+                        options.onstep(data, callback);
+                    else callback();
+                };
+                
+                if(options.getLocals){
+                    dbg.getFrameLocals(frame, function(loces){
+                        data.locals = loces;
+                        next();
+                    });                    
+                }else next();
             }else dbg.step();
-		});
-	});	
-	dbg.once('ready', dbg.step.bind(dbg));
-	dbg.connect();
+        });
+    }); 
+    dbg.once('ready', dbg.step.bind(dbg));
+    dbg.connect();
 }
 
-function writeObj(fname, obj){
-	console.log('Writing to ' + fname);
-	fs.writeFileSync(fname, JSON.stringify(obj));
-}
+
+Object.prototype.extend = function(o){ 
+    for(i in o)
+        if(!this.hasOwnProperty(i))
+            this[i] = o[i]; 
+};

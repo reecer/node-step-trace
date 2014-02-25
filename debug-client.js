@@ -12,12 +12,11 @@ var CONNECT_DELAY = 200;
 module.exports = Client;
 
 Client.prototype = Object.create(DebuggerClient.prototype);
-function Client(port, script, frameStep){ 
+function Client(port, script){ 
 	DebuggerClient.call(this); 
 
 	this.port = port;
 	this.script = script;
-	this.frameStep = frameStep;
     this.frameIndex = 0;
 
 	this.on('exception', function(exc){
@@ -100,8 +99,7 @@ Client.prototype.getFrameLocals = function(f, cb){
     });
 };
 Client.prototype.digObject = function(obj, cb){
-    var val = null;
-    
+    var val = null;    
     switch(obj.type){
         case 'object':
             var refs = [], refNames = [], count = 0, self = this;
