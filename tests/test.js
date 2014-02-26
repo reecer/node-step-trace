@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var tracer = require('./client');
+var tracer = require('../index');
 
 var input = process.argv[2];
 if(!input){ 
