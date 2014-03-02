@@ -3,7 +3,6 @@ step-trace
 
 Node module for handling v8 step-by-step debugging
 
----------------
 #Getting Started
 
 
@@ -27,18 +26,15 @@ Node module for handling v8 step-by-step debugging
 - onerror (function)
 > Callback for an **exception** event.
 
-- onstep (function) -- *function(**data**, **next**)*
+- onstep (function) -- _function(**data**, **next**)_
 > Callback for each step passing the following as arguments.
  
-	- **data** (object)
->  *Object with the following details about each frame:*
+	- **data** (object) -- *Object with the following details about each frame:*
 		* script (string)
 		* line	 (int)
 		* text	 (string)
 		* locals (object)
-> 
-	- **next** (function)
-> > *Function to be called when callback is finished. Necessary for async operations.*
+	- **next** (function) -- *Function to be called when callback is finished. Necessary for async operations.*
 >
 
 - onclose (function)
