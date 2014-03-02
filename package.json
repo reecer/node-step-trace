@@ -1,7 +1,12 @@
 {
 	"name": "step-trace",
+	"description": "Node module for stepping through v8 debugger. Can collect frames, locals, scripts, and more.",
 	"version": "0.0.1",
-	"main": "",
-	"private": true,
-	"dependencies": {}
+	"license": "MIT",
+	"main": "index.js",
+	"author": "Reece Robinson <reecekrobinson@gmail.com> (reecer.org)",
+	"repository":{
+		"type": "git",
+		"url": "http://github.com/reecer/node-step-trace"
+	}
 }

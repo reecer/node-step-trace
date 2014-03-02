@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 var Client = require('./debug-client'),
 	fs = require('fs');
@@ -19,26 +18,22 @@ function startScript(src, options){
         getLocals: true,
         getNative: false
     });
-    var ctx = {
-        frames: []
-    };
 
     // Init client
     var dbg = new Client(options.PORT || 5859, src);
 
     // callbacks
     if(typeof options.onclose === 'function') 
-        dbg.proc.on('close', options.onclose.bind(ctx));
+        dbg.proc.on('close', options.onclose.bind(dbg));
     process.on('exit', dbg.proc.kill.bind(dbg.proc));
 
     if(typeof options.onerror === 'function')
-        dbg.on('exception', options.onerror.bind(ctx))
+        dbg.on('exception', options.onerror.bind(dbg))
 
     // Break event -- happens after stepping
     dbg.on('break', function(brk){
         // Explore frames if told
         dbg.getNextFrame(function(frame) {
-            ctx.frames.push(frame);
             var script = dbg.scripts[frame.func.scriptId];         
             if(script && (options.getNative || script.isNative !== true) ){
                 var callback = script.lineCount-1 > frame.line ? dbg.step.bind(dbg, 1, 'in') : dbg.cont.bind(dbg);
@@ -51,7 +46,7 @@ function startScript(src, options){
                 };
 
                 if(typeof options.onstep === 'function')
-                    next = options.onstep.bind(ctx, data, callback);
+                    next = options.onstep.bind(dbg, data, callback);
                 else next = callback;
 
                 if(options.getLocals){
