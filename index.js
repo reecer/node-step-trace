@@ -21,11 +21,11 @@ function startScript(src, options){
 
     // Init client
     var dbg = new Client(options.PORT || 5859, src);
-
+    var kill = dbg.proc.kill.bind(dbg.proc);
     // callbacks
     if(typeof options.onclose === 'function') 
         dbg.proc.on('close', options.onclose.bind(dbg));
-    process.on('exit', dbg.proc.kill.bind(dbg.proc));
+    process.on('exit', kill);
 
     if(typeof options.onerror === 'function')
         dbg.on('exception', options.onerror.bind(dbg))
@@ -60,6 +60,7 @@ function startScript(src, options){
     }); 
     dbg.once('ready', dbg.step.bind(dbg));
     dbg.connect();
+    return kill;
 }
 
 

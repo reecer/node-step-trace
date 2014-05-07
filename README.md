@@ -11,7 +11,11 @@ Node module for handling v8 step-by-step debugging
 
 ##Usage
 	var tracer = require('step-trace');
-	tracer.trace(script, options);
+	var kill   = tracer.trace(script, options);
+
+
+###kill (function)
+> A function is returned from the trace function, to allow the child process to be killed.
 
 ###script (string)
 > Location of node script to debug.
