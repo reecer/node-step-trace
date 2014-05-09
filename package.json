@@ -1,7 +1,7 @@
 {
 	"name": "step-trace",
 	"description": "Node module for stepping through v8 debugger. Can collect frames, locals, scripts, and more.",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"license": "MIT",
 	"main": "index.js",
 	"author": "Reece Robinson <reecekrobinson@gmail.com> (reecer.org)",
