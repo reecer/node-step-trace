@@ -38,8 +38,11 @@ Node module for handling v8 step-by-step debugging
 		* line	 (int)
 		* text	 (string)
 		* locals (object)
-	- **next** (function) -- *Function to step once. Optionally takes a string argument --  "in", "out"  or (default) "next"*
-	- **cont** (function) -- *Function continue execution.*
+	- **next** (function) -- *Function to step once. Optionally takes a string argument:*
+	 	* "in"
+	 	* "out"
+	 	* "next" (default)
+	- **cont** (function) -- *Function to continue execution. The only callback after calling this will be **onclose***
 
 - onclose (function)
 > Callback for catching when the script being debugged exits.
@@ -47,7 +50,7 @@ Node module for handling v8 step-by-step debugging
 ##Example
 	var tracer = require('step-trace');
 	tracer.trace('binarySearch.js', {
-		onstep: function(data, next){
+		onstep: function(data, next, cont){
 			console.log(data);
 			next();
 		}
