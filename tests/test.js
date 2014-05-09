@@ -2,22 +2,35 @@
 
 var tracer = require('../index');
 
-var input = process.argv[2];
-if(!input){ 
-	console.error("Usage: test.js [input file]"); 
-	process.exit(); 
-}
+var input = 'binarySearch.js'
 
-var start = Date.now();
-tracer.trace(input, {
-	// getLocals: false,
-	onstep: function(data, next){
-		console.log(data);
 
-		next();
-	},
-	onclose: function(){
-		console.log('closed');
-		console.log((Date.now() - start) / 1000);
-	}
-});
+exports.continuing = function(test){		
+	var steps = 0;
+
+	tracer.trace(input, {
+		onstep: function(data, next, cont){
+			steps++;
+			cont();
+		},
+		onclose: function(){
+			test.equal(steps, 2, "Stepped more than once");
+			test.done();
+		}
+	});
+};
+
+exports.stepping = function(test){
+	var steps = 0;
+
+	tracer.trace(input, {
+		onstep: function(data, next){
+			steps++;
+			next();
+		},
+		onclose: function(){
+			test.equal(steps, 39, "Did not step 39 times");
+			test.done();
+		}
+	});
+};

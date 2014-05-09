@@ -46,7 +46,7 @@ function startScript(src, options){
                 };
 
                 if(typeof options.onstep === 'function')
-                    next = options.onstep.bind(dbg, data, callback);
+                    next = options.onstep.bind(dbg, data, callback, dbg.cont.bind(dbg));
                 else next = callback;
 
                 if(options.getLocals){
