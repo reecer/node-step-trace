@@ -1,9 +1,6 @@
-#!/usr/bin/env node
-
 var tracer = require('../index');
 
 var input = 'binarySearch.js'
-
 
 exports.continuing = function(test){		
 	var steps = 0;
@@ -14,7 +11,7 @@ exports.continuing = function(test){
 			cont();
 		},
 		onclose: function(){
-			test.equal(steps, 2, "Stepped more than once");
+			test.equal(steps, 1, "Stepped more than once");
 			test.done();
 		}
 	});
@@ -26,7 +23,7 @@ exports.stepping = function(test){
 	tracer.trace(input, {
 		onstep: function(data, next){
 			steps++;
-			next();
+			next('in');
 		},
 		onclose: function(){
 			test.equal(steps, 39, "Did not step 39 times");
