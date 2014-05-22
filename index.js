@@ -1,8 +1,16 @@
 
 var Client = require('./debug-client'),
-	fs = require('fs');
+	fs     = require('fs'),
+    async  = require('async');
 
 exports.trace = startScript;
+exports.SCOPE = {
+    GLOBAL:  0,
+    LOCAL:   1,
+    WITH:    2,
+    CLOSURE: 3,
+    CATCH:   4
+};
 
 // options = {
 //      onerror:    Function
@@ -20,12 +28,17 @@ function startScript(src, options){
     });
 
     // Init client
-    var dbg = new Client(options.PORT || 5859, src);
-    var kill = dbg.proc.kill.bind(dbg.proc);
+    var dbg  = new Client(options.PORT || 5859, src);
+    var kill = dbg.proc.kill.bind(dbg.proc, "SIGKILL");
+    var step = dbg.step.bind(dbg, 1);
+    var cont = dbg.cont.bind(dbg);
+
     // callbacks
     if(typeof options.onclose === 'function') 
         dbg.proc.on('close', options.onclose.bind(dbg));
-    process.on('exit', kill);
+
+    process.on('exit',   kill);
+    process.on('SIGINT', kill);
 
     if(typeof options.onerror === 'function')
         dbg.on('exception', options.onerror.bind(dbg))
@@ -34,32 +47,47 @@ function startScript(src, options){
     dbg.on('break', function(brk){
         // Explore frames if told
         dbg.getNextFrame(function(frame) {
-            var script = dbg.scripts[frame.func.scriptId];         
-            if(script && (options.getNative || script.isNative !== true) ){
-                var callback = script.lineCount-1 > frame.line ? dbg.step.bind(dbg, 1, 'in') : dbg.cont.bind(dbg);
+            var script = dbg.scripts[frame.func.scriptId];
+            if(!script || (script.isNative && !options.getNative)) step();
+            else{
+                var data = {};
                 var next;
-                
-                var data = {
-                    script: script.name,
-                    line: frame.line,
-                    text: frame.sourceLineText
-                };
 
                 if(typeof options.onstep === 'function')
-                    next = options.onstep.bind(dbg, data, callback, dbg.cont.bind(dbg));
-                else next = callback;
+                    next = options.onstep.bind(dbg, data, step, cont);
+                else 
+                    next = step;
+                
+                data.script = script.name;
+                data.line   = frame.line;
+                data.text   = frame.sourceLineText;
+                data.args   = frame.arguments;
 
-                if(options.getLocals){
-                    dbg.getFrameLocals(frame, function(loces){
-                        data.locals = loces;
-                        next();
-                    });                    
-                }else next();
-            }else dbg.step();
+                async.parallel({
+                    scopes: function(callback){
+                        async.parallel(frame.scopes.map(function(s){
+                            return function(done){
+                                dbg.getScope(s.index, done.bind(null, null));
+                            }
+                        }), callback.bind(null));
+                    },
+                    locals: function(callback){
+                        if(options.getLocals)
+                            dbg.getFrameLocals(frame, callback.bind(null, null));
+                        else callback();
+                    }
+                }, 
+                function(err, res){
+                    if(err) throw err;
+                    data.scopes = res.scopes;
+                    data.locals = res.locals;
+                    next();
+                });
+            }
         });
     }); 
-    dbg.once('ready', dbg.step.bind(dbg));
-    dbg.connect();
+    dbg.once('ready', step);
+    dbg.start();
     return kill;
 }
 

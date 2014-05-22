@@ -6,25 +6,22 @@
 **/
 
 var DebuggerClient = require('_debugger').Client,
-	spawn = require('child_process').spawn;
-var CONNECT_DELAY = 200;
+	spawn          = require('child_process').spawn,
+    CONNECT_DELAY  = 200;
 
 module.exports = Client;
 
 Client.prototype = Object.create(DebuggerClient.prototype);
 function Client(port, script){ 
 	DebuggerClient.call(this); 
-
-	this.port = port;
-	this.script = script;
-    this.frameIndex = 0;
-
 	this.on('exception', function(exc){
 		throw("Exception in client script:\n\t%j", exc);
 	});
 
-	this.proc = spawn(process.execPath, ['--debug-brk=' + this.port, this.script]);	
-	this.connect = setTimeout.bind(this, this.connect.bind(this, this.port), CONNECT_DELAY);
+    this.port   = port;
+    this.script = script;
+	this.proc   = spawn(process.execPath, ['--debug-brk=' + this.port, this.script]);	
+	this.start  = setTimeout.bind(this, this.connect.bind(this, this.port), CONNECT_DELAY);
 };
 Client.prototype.cont = function(){
 	this.reqContinue(function(){});
@@ -39,16 +36,21 @@ Client.prototype.step = function(n, action){
 	}, function(){});
 
 };
-Client.prototype.getScopes = function(cb){
+Client.prototype.getScope = function(num, cb){
+    var self = this;
     this.req({
-        command: 'scopes',
+        command: 'scope',
         arguments: {
-            // number: 1
-            // frameNumber: 1
+            number: num
+            // Not specified = current frame
+            // frameNumber: 1 
         }
     }, function(err, resp){
         if(err) throw('Error getting scopes:\n\t', err);
-        else cb(resp.scopes);        
+        else{
+            var ref = resp.object.ref;
+            self.lookupRefs([ref], cb);
+        } 
     });
 };
 Client.prototype.lookupRefs = function(refs, cb){
@@ -71,7 +73,7 @@ Client.prototype.getNextFrame = function(cb){
             inlineRefs: true
         }
     },function(err,resp){
-        if(err) throw("Error requesting backtrace: \n\t%s", err);
+        if(err) throw("Error requesting frame: \n\t%s", err);
         cb(resp);
     });
 };
@@ -99,7 +101,8 @@ Client.prototype.getFrameLocals = function(f, cb){
     });
 };
 Client.prototype.digObject = function(obj, cb){
-    var val = null;    
+    var val = null;
+    if(!obj) return;
     switch(obj.type){
         case 'object':
             var refs = [], refNames = [], count = 0, self = this;
