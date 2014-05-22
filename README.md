@@ -38,6 +38,8 @@ Node module for handling v8 step-by-step debugging
 		* line	 (int)
 		* text	 (string)
 		* locals (object)
+		* args   (object)
+		* scopes (object)
 	- **next** (function) -- *Function to step once. Optionally takes a string argument:*
 	 	* "in"
 	 	* "out"

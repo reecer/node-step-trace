@@ -18,10 +18,18 @@ function Client(port, script){
 		throw("Exception in client script:\n\t%j", exc);
 	});
 
+
     this.port   = port;
     this.script = script;
-	this.proc   = spawn(process.execPath, ['--debug-brk=' + this.port, this.script]);	
-	this.start  = setTimeout.bind(this, this.connect.bind(this, this.port), CONNECT_DELAY);
+    this.proc   = spawn(process.execPath, ['--debug-brk=' + this.port, this.script]);   
+    this.start  = setTimeout.bind(this, this.connect.bind(this, this.port), CONNECT_DELAY);
+    var oldReq = this.req;
+    this.req = function(){
+        if(!this.destroyed)
+            oldReq.apply(this, arguments);
+        else 
+            throw Error("Script not connected");
+    };
 };
 Client.prototype.cont = function(){
 	this.reqContinue(function(){});

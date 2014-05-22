@@ -10,7 +10,7 @@
     "url": "http://github.com/reecer/node-step-trace"
   },
   "scripts": {
-    "test": "mocha ./tests/test.js"
+    "test": "mocha ./tests/test.js --reporter spec"
   },
   "dependencies": {
     "async": "~0.9.0"

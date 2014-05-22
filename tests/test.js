@@ -7,28 +7,34 @@ describe('Stepping', function(){
 	this.timeout(0);
 
 	// Data object's properties
-	it('should contain frame data', function(done){
-		var props = ['script', 'line', 'text', 'scopes', 'locals'];
-		var steps = 0;
+	var props = ['script', 'line', 'text', 'scopes', 'locals'];
+	var steps = 0;
+	var stepFn;
 
+	it('should contain frame data', function(done){
 		tracer.trace(input, {
 			onstep: function(data, next, cont){
 				props.forEach(function(prop){
-					it('should have property ' + prop, function(){
-						assert.ok(data.hasOwnProperty(prop));
-						assert.ok(data[prop]);						
-					})
+					assert(data.hasOwnProperty(prop));
+					assert(!!data[prop]);
 				});
 				steps++;
-				next();
+				stepFn = next;
+				next('in');
 			},
 			onclose: function(){
-				it('should have stepped 39 times', assert.equal.bind(assert, steps, 39));
 				done();
 			}
 		});
 	});
-
+	
+	it('should have stepped 39 times', function(){
+		assert.equal(steps, 39)
+	});
+	it("shouldn't allow post-mortem stepping", function(){
+		assert.throws(stepFn);
+	});
+			
 });
 
 describe('Continuing', function(){
@@ -36,6 +42,7 @@ describe('Continuing', function(){
 
 	it('should only step once', function(done){
 		var steps = 0;
+
 		tracer.trace(input, {
 			onstep: function(data, next, cont){
 				assert.equal(typeof cont, 'function');

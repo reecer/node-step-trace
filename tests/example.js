@@ -3,7 +3,7 @@ var input = 'tests/binarySearch.js'
 
 tracer.trace(input, {
 	onstep: function(data, next, cont){
-		console.log(data);
+		console.log(this);
 		cont();
 	},
 	onclose: function(){
